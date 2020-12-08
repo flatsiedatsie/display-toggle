@@ -1,30 +1,27 @@
-"""Display toggle adapter for Mozilla WebThings Gateway."""
+"""Display toggle adapter for WebThings Gateway."""
 
 
 from gateway_addon import Adapter, Device, Property
-from os import path
-import json
+
 import os
-import subprocess
 import sys
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib'))
+import json
 import time
+import subprocess
 
-#sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
+_TIMEOUT = 3
 
+_CONFIG_PATHS = [
+    os.path.join(os.path.expanduser('~'), '.webthings', 'config'),
+]
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
-#_CONFIG_PATHS = [
-#    os.path.join(os.path.expanduser('~'), '.mozilla-iot', 'config'),
-#]
-
-#if 'MOZIOT_HOME' in os.environ:
-#    _CONFIG_PATHS.insert(0, os.path.join(os.environ['MOZIOT_HOME'], 'config'))
+if 'WEBTHINGS_HOME' in os.environ:
+    _CONFIG_PATHS.insert(0, os.path.join(os.environ['WEBTHINGS_HOME'], 'config'))
 
 
 class DisplayToggleAdapter(Adapter):
-    """Adapter for Internet Radio"""
+    """Adapter for Display Toggle"""
 
     def __init__(self, verbose=False):
         """
@@ -41,9 +38,9 @@ class DisplayToggleAdapter(Adapter):
         Adapter.__init__(self, self.addon_name, self.addon_name, verbose=verbose)
 
 
-        self.addon_path = os.path.join(os.path.expanduser('~'), '.mozilla-iot', 'addons', self.addon_name)
-        #self.persistence_file_path = os.path.join(os.path.expanduser('~'), '.mozilla-iot', 'data', self.addon_name,'persistence.json')
-
+        self.addon_path = os.path.join(self.user_profile['addonsDir'], self.addon_name)
+        #self.persistence_file_path = os.path.join(self.user_profile['dataDir'], self.addon_name,'persistence.json')
+        
         try:
             self.display_toggle = DisplayToggleDevice(self)
             self.handle_device_added(self.display_toggle)
@@ -53,30 +50,34 @@ class DisplayToggleAdapter(Adapter):
         except Exception as ex:
             print("Could not create display_toggle device: " + str(ex))
 
+        # Make sure the display is on initially.
+        self.set_power_state(1)
+
 
 #
 # MAIN SETTING OF THE STATES
 #
 
 
-    def set_signal_state(self,signal):
+    def set_power_state(self,power):
         if self.DEBUG:
-            print("Setting display signal to " + str(signal))
+            print("Setting display power to " + str(power))
         try:
-            #if bool(power) != bool(self.persistent_data['signal']):
-            #self.persistent_data['signal'] = bool(signal)
+            #if bool(power) != bool(self.persistent_data['power']):
+            #self.persistent_data['power'] = bool(power)
             #self.save_persistent_data()
 
-            if signal:
+            if power:
                 os.system("vcgencmd display_power 1")
-                self.set_signal_property(bool(signal))
+                os.system("DISPLAY=:0 xset dpms force on")
+                self.set_power_property(bool(power))
                 
             else:
                 os.system("vcgencmd display_power 0")    
-                self.set_signal_property(bool(signal))
+                self.set_power_property(bool(power))
 
         except Exception as ex:
-            print("Error setting display signal state: " + str(ex))
+            print("Error setting display power state: " + str(ex))
 
 
     # brightness currently not implemented
@@ -114,14 +115,14 @@ class DisplayToggleAdapter(Adapter):
 #
 
 
-    def set_signal_property(self, signal):
+    def set_power_property(self, power):
         if self.DEBUG:
-            print("new display state on thing: " + str(signal))
+            print("new display state on thing: " + str(power))
         try:
             if self.devices['display-toggle'] != None:
-                self.devices['display-toggle'].properties['signal'].update( bool(signal) )
+                self.devices['display-toggle'].properties['power'].update( bool(power) )
         except Exception as ex:
-            print("Error setting signal state:" + str(ex))
+            print("Error setting power state:" + str(ex))
 
 
     def set_brightness_property(self, brightness):
@@ -187,9 +188,9 @@ class DisplayToggleDevice(Device):
 
         try:
 
-            self.properties["signal"] = DisplayToggleProperty(
+            self.properties["power"] = DisplayToggleProperty(
                             self,
-                            "signal",
+                            "power",
                             {
                                 '@type': 'OnOffProperty',
                                 'label': "Signal",
@@ -225,8 +226,8 @@ class DisplayToggleProperty(Property):
         #print("property: set_value called for " + str(self.title))
         #print("property: set value to: " + str(value))
         try:
-            if self.title == 'signal':
-                self.device.adapter.set_signal_state(bool(value))
+            if self.title == 'power':
+                self.device.adapter.set_power_state(bool(value))
                 #self.update(value)
 
             if self.title == 'brightness':
