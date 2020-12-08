@@ -11,8 +11,6 @@ import time
 
 #sys.path.append(path.join(path.dirname(path.abspath(__file__)), 'lib'))
 
-import requests  # noqa
-
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
