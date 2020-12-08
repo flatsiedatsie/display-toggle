@@ -1,6 +1,6 @@
 {
   "author": "Flatsiedatsie",
-  "description": "Display toggle",
+  "description": "Display Toggle",
   "gateway_specific_settings": {
     "webthings": {
       "exec": "python3 {path}/main.py",
@@ -13,7 +13,7 @@
   "id": "display-toggle",
   "license": "MPL-2.0",
   "manifest_version": 1,
-  "name": "Display toggle",
+  "name": "Display Toggle",
   "short_name": "Display",
-  "version": "0.0.1"
+  "version": "0.0.2"
 }
