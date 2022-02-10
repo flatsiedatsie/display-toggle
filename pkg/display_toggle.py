@@ -37,9 +37,48 @@ class DisplayToggleAdapter(Adapter):
         self.name = self.__class__.__name__
         Adapter.__init__(self, self.addon_name, self.addon_name, verbose=verbose)
 
+        #print(str(os.uname()))
+
 
         self.addon_path = os.path.join(self.user_profile['addonsDir'], self.addon_name)
-        #self.persistence_file_path = os.path.join(self.user_profile['dataDir'], self.addon_name,'persistence.json')
+        self.persistence_file_path = os.path.join(self.user_profile['dataDir'], self.addon_name,'persistence.json')
+
+        self.persistent_data = {'display':True, 'brightness':100,'rotation':'0'}
+        
+        
+        self.pi4 = False
+        try:
+            
+            fd = os.open("/sys/firmware/devicetree/base/model",os.O_RDONLY)
+	
+            ret = os.read(fd,15)
+            #print("Pi version: " + str(ret))
+            if "Raspberry Pi 4" in str(ret):
+                print("it's a Raspberry Pi 4")
+                self.pi4 = True
+            os.close(fd)
+            
+        except Exception as ex:
+            print("Error getting pi version: " + str(ex))
+        
+        
+        try:
+            self.persistence_file_dir = os.path.join(self.user_profile['dataDir'], self.addon_name)
+            self.persistence_file_path = os.path.join(self.user_profile['dataDir'], self.addon_name, 'persistence.json')
+            if not os.path.isdir(self.persistence_file_dir):
+                os.mkdir(self.persistence_file_dir)
+            
+            if not os.path.isfile(self.persistence_file_path):
+                self.save_persistent_data()
+        
+            with open(self.persistence_file_path) as f:
+                self.persistent_data = json.load(f)
+                if self.DEBUG:
+                    print("Persistence data was loaded succesfully.")
+        
+        except Exception as ex:
+            print("Error reading persistent data: " + str(ex))
+        
         
         try:
             self.display_toggle = DisplayToggleDevice(self)
@@ -50,9 +89,13 @@ class DisplayToggleAdapter(Adapter):
         except Exception as ex:
             print("Could not create display_toggle device: " + str(ex))
 
-        # Make sure the display is on initially.
-        self.set_power_state(1)
-
+        self.set_power_state(self.persistent_data['display'])
+        
+        if os.path.isdir('/sys/class/backlight/rpi_backlight'):
+            self.set_brightness(self.persistent_data['brightness'])
+        
+        if self.pi4:
+            self.set_rotation(self.persistent_data['rotation'])
 
 #
 # MAIN SETTING OF THE STATES
@@ -62,6 +105,10 @@ class DisplayToggleAdapter(Adapter):
     def set_power_state(self,power):
         if self.DEBUG:
             print("Setting display power to " + str(power))
+            
+        self.persistent_data['display'] = power
+        self.save_persistent_data()
+        
         try:
             #if bool(power) != bool(self.persistent_data['power']):
             #self.persistent_data['power'] = bool(power)
@@ -89,13 +136,17 @@ class DisplayToggleAdapter(Adapter):
         #    self.save_persistent_data()
 
         try:
+            self.persistent_data['brightness'] = brightness
+            self.save_persistent_data()
+            
             #if sys.platform == 'darwin':
             #    command = \
             #        'osascript -e \'set volume output volume {}\''.format(
             #            volume
             #        )
             #else:
-            command = 'echo {} > /sys/class/backlight/rpi_backlight/brightness'.format(brightness)
+            byte_brightness = int(brightness * 2.5)
+            command = 'echo {} > /sys/class/backlight/rpi_backlight/brightness'.format(byte_brightness)
 
             if self.DEBUG:
                 print("Command to change brightness: " + str(command))
@@ -110,6 +161,30 @@ class DisplayToggleAdapter(Adapter):
         self.set_brightness_property(brightness)
 
 
+
+    def set_rotation(self,degrees):
+        if self.DEBUG:
+            print("changing rotation to: " + str(degrees))
+            
+        try:
+            self.persistent_data['rotation'] = str(degrees)
+            self.save_persistent_data()
+            
+            if int(degrees) == 0:
+                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate normal")
+            elif int(degrees) == 90:
+                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate left")
+            elif int(degrees) == 180:
+                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate left")
+            elif int(degrees) == 270:
+                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate inverted")
+            
+        except Exception as ex:
+            print("Error trying to set rotation: " + str(ex))
+            
+        self.set_rotation_property(str(degrees))
+
+            
 #
 # SUPPORT METHODS
 #
@@ -122,7 +197,7 @@ class DisplayToggleAdapter(Adapter):
             if self.devices['display-toggle'] != None:
                 self.devices['display-toggle'].properties['power'].update( bool(power) )
         except Exception as ex:
-            print("Error setting power state:" + str(ex))
+            print("Error setting power state property: " + str(ex))
 
 
     def set_brightness_property(self, brightness):
@@ -132,9 +207,18 @@ class DisplayToggleAdapter(Adapter):
             if self.devices['display-toggle'] != None:
                 self.devices['display-toggle'].properties['brightness'].update( int(brightness) )
         except Exception as ex:
-            print("Error setting brightness:" + str(ex))
+            print("Error setting brightness property: " + str(ex))
 
 
+    def set_rotation_property(self, rotation):
+        if self.DEBUG:
+            print("new rotation: " + str(rotation))
+        try:
+            print(str(dir(self.devices['display-toggle'].properties)))
+            if self.devices['display-toggle'] != None:
+                self.devices['display-toggle'].properties['rotation'].update( str(rotation) )
+        except Exception as ex:
+            print("Error setting rotation property: " + str(ex))
 
 
 
@@ -155,6 +239,34 @@ class DisplayToggleAdapter(Adapter):
                 print("User removed Display toggle thing")
         except:
             print("Could not remove Display toggle thing from devices")
+
+
+
+
+#
+#  SAVE TO PERSISTENCE
+#
+
+    def save_persistent_data(self):
+        #if self.DEBUG:
+        #print("Saving persistence data to file: " + str(self.persistence_file_path))
+            
+        try:
+            if not os.path.isfile(self.persistence_file_path):
+                open(self.persistence_file_path, 'a').close()
+                if self.DEBUG:
+                    print("Created an empty persistence file")
+
+            with open(self.persistence_file_path) as f:
+                if self.DEBUG:
+                    print("saving persistent data: " + str(self.persistent_data))
+                json.dump( self.persistent_data, open( self.persistence_file_path, 'w+' ) )
+                return True
+
+        except Exception as ex:
+            print("Error: could not store data in persistent store: " + str(ex) )
+            return False
+
 
 
 
@@ -193,15 +305,54 @@ class DisplayToggleDevice(Device):
                             "power",
                             {
                                 '@type': 'OnOffProperty',
-                                'label': "Signal",
+                                'label': "State",
                                 'type': 'boolean'
                             },
-                            True) # set the display to on at init
+                            self.adapter.persistent_data['display']) # set the display to on at init
+
 
         except Exception as ex:
-            print("error adding properties: " + str(ex))
+            print("error adding power property: " + str(ex))
+            
 
-        print("Display toggle thing has been created.")
+        try:
+            if os.path.isdir('/sys/class/backlight/rpi_backlight'):
+                self.properties["brightness"] = DisplayToggleProperty(
+                                self,
+                                "brightness",
+                                {
+                                    "@type": "BrightnessProperty",
+                                    "type": "integer",
+                                    "title": "Brightness",
+                                    "description": "The level of light from 0-100",
+                                    "minimum" : 0,
+                                    "maximum" : 100
+                                },
+                                self.adapter.persistent_data['brightness'])
+                self._type.append('MultiLevelSwitch')
+                            
+                            
+        except Exception as ex:
+            print("error adding brightness property: " + str(ex))
+                            
+        try:
+            if self.pi4:
+                self.properties["rotation"] = DisplayToggleProperty(
+                                self,
+                                "rotation",
+                                {
+                                    "type": "string",
+                                    'enum': ['0','90','180','270'],
+                                    "title": "Rotation",
+                                    "description": "The prefered rotation of the display"
+                                },
+                                str(self.adapter.persistent_data['rotation']))
+
+        except Exception as ex:
+            print("error adding rotation property: " + str(ex))
+
+        if self.adapter.DEBUG:
+            print("Display toggle thing has been prepared.")
 
 
 
@@ -223,8 +374,9 @@ class DisplayToggleProperty(Property):
 
 
     def set_value(self, value):
-        #print("property: set_value called for " + str(self.title))
-        #print("property: set value to: " + str(value))
+        if self.device.adapter.DEBUG:
+            print("property: set_value called for " + str(self.title))
+            print("property: set_value to: " + str(value))
         try:
             if self.title == 'power':
                 self.device.adapter.set_power_state(bool(value))
@@ -233,6 +385,9 @@ class DisplayToggleProperty(Property):
             if self.title == 'brightness':
                 self.device.adapter.set_brightness(int(value))
                 #self.update(value)
+                
+            if self.title == 'rotation':
+                self.device.adapter.set_rotation(str(value))
 
         except Exception as ex:
             print("set_value error: " + str(ex))
@@ -240,8 +395,9 @@ class DisplayToggleProperty(Property):
 
 
     def update(self, value):
-        #print("property -> update")
-        #if value != self.value:
-        self.value = value
-        self.set_cached_value(value)
-        self.device.notify_property_changed(self)
+        if self.device.adapter.DEBUG:
+            print("property -> update: " + str(value))
+        if value != self.value:
+            self.value = value
+            self.set_cached_value(value)
+            self.device.notify_property_changed(self)
