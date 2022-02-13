@@ -239,13 +239,13 @@ class DisplayToggleAdapter(Adapter):
     def unload(self):
         if self.DEBUG:
             print("Shutting down display toggle.")
-        self.set_display_state(1)
+        self.set_power_state(1)
 
 
 
     def remove_thing(self, device_id):
         try:
-            self.set_display_state(1)
+            self.set_power_state(1)
             obj = self.get_device(device_id)
             self.handle_device_removed(obj)                     # Remove from device dictionary
             if self.DEBUG:
