@@ -349,7 +349,7 @@ class DisplayToggleDevice(Device):
             print("error adding brightness property: " + str(ex))
                             
         try:
-            if self.pi4:
+            if self.adapter.pi4:
                 self.properties["rotation"] = DisplayToggleProperty(
                                 self,
                                 "rotation",
