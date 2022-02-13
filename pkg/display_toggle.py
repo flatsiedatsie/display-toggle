@@ -33,18 +33,21 @@ class DisplayToggleAdapter(Adapter):
         #print("initialising adapter from class")
         self.pairing = False
         self.addon_name = 'display-toggle'
-        self.DEBUG = True
+        self.DEBUG = False
         self.name = self.__class__.__name__
         Adapter.__init__(self, self.addon_name, self.addon_name, verbose=verbose)
 
         #print(str(os.uname()))
 
+        if os.path.isfile('/boot/debug_display_toggle.txt'):
+            self.DEBUG = True
 
         self.addon_path = os.path.join(self.user_profile['addonsDir'], self.addon_name)
         self.persistence_file_path = os.path.join(self.user_profile['dataDir'], self.addon_name,'persistence.json')
 
         self.persistent_data = {'display':True, 'brightness':100,'rotation':'0'}
         
+        self.backlight = False # whether the Pi's display has hardware backlight control
         
         self.pi4 = False
         try:
@@ -54,7 +57,8 @@ class DisplayToggleAdapter(Adapter):
             ret = os.read(fd,15)
             #print("Pi version: " + str(ret))
             if "Raspberry Pi 4" in str(ret):
-                print("it's a Raspberry Pi 4")
+                if self.DEBUG:
+                    print("it's a Raspberry Pi 4")
                 self.pi4 = True
             os.close(fd)
             
@@ -92,6 +96,7 @@ class DisplayToggleAdapter(Adapter):
         self.set_power_state(self.persistent_data['display'])
         
         if os.path.isdir('/sys/class/backlight/rpi_backlight'):
+            self.backlight = True
             self.set_brightness(self.persistent_data['brightness'])
         
         if self.pi4:
@@ -124,7 +129,8 @@ class DisplayToggleAdapter(Adapter):
                 self.set_power_property(bool(power))
 
         except Exception as ex:
-            print("Error setting display power state: " + str(ex))
+            if self.DEBUG:
+                print("Error setting display power state: " + str(ex))
 
 
     # brightness currently not implemented
@@ -145,8 +151,13 @@ class DisplayToggleAdapter(Adapter):
             #            volume
             #        )
             #else:
-            byte_brightness = int(brightness * 2.5)
-            command = 'echo {} > /sys/class/backlight/rpi_backlight/brightness'.format(byte_brightness)
+            if self.backlight:
+                byte_brightness = int(brightness * 2.5)
+                command = 'echo {} > /sys/class/backlight/rpi_backlight/brightness'.format(byte_brightness)
+            else:
+                decimal_brightness = brightness / 100
+                command = 'DISPLAY=:0 xrandr --output HDMI-1 --brightness {}'.format(decimal_brightness, '.1f')
+
 
             if self.DEBUG:
                 print("Command to change brightness: " + str(command))
@@ -156,7 +167,8 @@ class DisplayToggleAdapter(Adapter):
             if self.DEBUG:
                 print("New brightness has been set")
         except Exception as ex:
-            print("Error trying to set brightness: " + str(ex))
+            if self.DEBUG:
+                print("Error while trying to set brightness: " + str(ex))
 
         self.set_brightness_property(brightness)
 
@@ -180,7 +192,8 @@ class DisplayToggleAdapter(Adapter):
                 os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate inverted")
             
         except Exception as ex:
-            print("Error trying to set rotation: " + str(ex))
+            if self.DEBUG:
+                print("Error trying to set rotation: " + str(ex))
             
         self.set_rotation_property(str(degrees))
 
