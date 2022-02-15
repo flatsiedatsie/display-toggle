@@ -122,6 +122,8 @@ class DisplayToggleAdapter(Adapter):
             if power:
                 os.system("vcgencmd display_power 1")
                 os.system("DISPLAY=:0 xset dpms force on")
+                os.system("DISPLAY=:0 xset s off")
+                os.system("DISPLAY=:0 xset s noblank")
                 self.set_power_property(bool(power))
                 
             else:
