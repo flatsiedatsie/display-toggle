@@ -49,6 +49,12 @@ class DisplayToggleAdapter(Adapter):
         
         self.backlight = False # whether the Pi's display has hardware backlight control
         
+        self.screen_width  = run_command('cat /sys/class/graphics/fb0/virtual_size | cut -d, -f1')
+        self.screen_height = run_command('cat /sys/class/graphics/fb0/virtual_size | cut -d, -f2')
+        
+        self.screen_width = self.screen_width.replace('\n','')
+        self.screen_height = self.screen_height.replace('\n','')
+        
         self.pi4 = False
         try:
             
@@ -87,6 +93,9 @@ class DisplayToggleAdapter(Adapter):
         try:
             self.display_toggle = DisplayToggleDevice(self)
             self.handle_device_added(self.display_toggle)
+            
+            self.display_toggle = self.get_device('display-toggle')
+            self.display_toggle.connected_notify(True)
             if self.DEBUG:
                 print("display_toggle device created")
 
@@ -121,13 +130,15 @@ class DisplayToggleAdapter(Adapter):
 
             if power:
                 os.system("vcgencmd display_power 1")
-                os.system("DISPLAY=:0 xset dpms force on")
+                #os.system("DISPLAY=:0 xset dpms force on")
+                os.system("DISPLAY=:0 xset -dpms")
                 os.system("DISPLAY=:0 xset s off")
                 os.system("DISPLAY=:0 xset s noblank")
                 self.set_power_property(bool(power))
                 
             else:
-                os.system("vcgencmd display_power 0")    
+                os.system("vcgencmd display_power 0")
+                #os.system("DISPLAY=:0 xset dpms force off")    
                 self.set_power_property(bool(power))
 
         except Exception as ex:
@@ -366,6 +377,36 @@ class DisplayToggleDevice(Device):
         except Exception as ex:
             print("error adding rotation property: " + str(ex))
 
+
+        print("self.adapter.screen_width: " + str(self.adapter.screen_width))
+        print("type(self.adapter.screen_width): " + str(type(self.adapter.screen_width)))
+        print("self.adapter.screen_width.isdigit(): ", self.adapter.screen_width.isdigit())
+        
+        if self.adapter.screen_width.isdigit() and self.adapter.screen_height.isdigit():
+            
+            self.properties["width"] = DisplayToggleProperty(
+                            self,
+                            "width",
+                            {
+                                'title': "Width",
+                                'type': 'integer',
+                                'readOnly': True
+                            },
+                            int(self.adapter.screen_width))
+                        
+            self.properties["height"] = DisplayToggleProperty(
+                            self,
+                            "height",
+                            {
+                                'title': "Height",
+                                'type': 'integer',
+                                'readOnly': True
+                            },
+                            int(self.adapter.screen_height))
+
+
+
+
         if self.adapter.DEBUG:
             print("Display toggle thing has been prepared.")
 
@@ -416,3 +457,24 @@ class DisplayToggleProperty(Property):
             self.value = value
             self.set_cached_value(value)
             self.device.notify_property_changed(self)
+
+
+
+
+
+
+
+def run_command(cmd, timeout_seconds=20):
+    try:
+        
+        p = subprocess.run(cmd, timeout=timeout_seconds, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, universal_newlines=True)
+
+        if p.returncode == 0:
+            return p.stdout # + '\n' + "Command success" #.decode('utf-8')
+            #yield("Command success")
+        else:
+            if p.stderr:
+                return "Error: " + str(p.stderr)  + '\n' + "Command failed"   #.decode('utf-8'))
+
+    except Exception as e:
+        print("Error running command: "  + str(e))
