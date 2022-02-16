@@ -200,9 +200,9 @@ class DisplayToggleAdapter(Adapter):
             elif int(degrees) == 90:
                 os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate left")
             elif int(degrees) == 180:
-                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate left")
-            elif int(degrees) == 270:
                 os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate inverted")
+            elif int(degrees) == 270:
+                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate right")
             
         except Exception as ex:
             if self.DEBUG:
