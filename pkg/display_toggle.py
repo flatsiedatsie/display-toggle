@@ -377,10 +377,10 @@ class DisplayToggleDevice(Device):
         except Exception as ex:
             print("error adding rotation property: " + str(ex))
 
-
-        print("self.adapter.screen_width: " + str(self.adapter.screen_width))
-        print("type(self.adapter.screen_width): " + str(type(self.adapter.screen_width)))
-        print("self.adapter.screen_width.isdigit(): ", self.adapter.screen_width.isdigit())
+        if self.adapter.DEBUG:
+            print("self.adapter.screen_width: " + str(self.adapter.screen_width))
+            print("type(self.adapter.screen_width): " + str(type(self.adapter.screen_width)))
+            print("self.adapter.screen_width.isdigit(): ", self.adapter.screen_width.isdigit())
         
         if self.adapter.screen_width.isdigit() and self.adapter.screen_height.isdigit():
             
