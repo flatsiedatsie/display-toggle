@@ -1,4 +1,4 @@
-"""Display Toggle adapter for Mozilla WebThings Gateway."""
+"""Display Toggle adapter for Candle controller."""
 
 from os import path
 import functools

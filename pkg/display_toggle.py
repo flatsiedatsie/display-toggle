@@ -102,7 +102,9 @@ class DisplayToggleAdapter(Adapter):
         except Exception as ex:
             print("Could not create display_toggle device: " + str(ex))
 
-        self.set_power_state(self.persistent_data['display'])
+
+
+            
         
         if os.path.isdir('/sys/class/backlight/rpi_backlight'):
             self.backlight = True
@@ -110,6 +112,12 @@ class DisplayToggleAdapter(Adapter):
         
         if self.pi4:
             self.set_rotation(self.persistent_data['rotation'])
+
+        if self.persistent_data['display'] == True:
+            self.set_power_state(self.persistent_data['display'])
+        else:
+            time.sleep(90)
+            self.set_power_state(self.persistent_data['display'])
 
 #
 # MAIN SETTING OF THE STATES

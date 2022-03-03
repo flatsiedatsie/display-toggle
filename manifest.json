@@ -1,5 +1,5 @@
 {
-  "author": "Flatsiedatsie",
+  "author": "CandleSmartHome.com",
   "description": "Display Toggle",
   "gateway_specific_settings": {
     "webthings": {
@@ -15,5 +15,5 @@
   "manifest_version": 1,
   "name": "Display Toggle",
   "short_name": "Display",
-  "version": "1.0.8"
+  "version": "1.0.9"
 }
