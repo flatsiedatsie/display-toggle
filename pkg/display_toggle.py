@@ -1,7 +1,7 @@
 """Display toggle adapter for WebThings Gateway."""
 
 
-from gateway_addon import Adapter, Device, Property
+from gateway_addon import Adapter, Device, Property, Database
 
 import os
 import sys
@@ -46,6 +46,8 @@ class DisplayToggleAdapter(Adapter):
         self.persistence_file_path = os.path.join(self.user_profile['dataDir'], self.addon_name,'persistence.json')
 
         self.persistent_data = {'display':True, 'brightness':100,'rotation':'0'}
+        self.user_action_occured = False # set to true if the user manually toggles something (in the first 90 seconds).
+        self.do_not_turn_on_initially = False # User may disabe the safety feature where the screen always turns on for the first 90 seconds.
         
         self.backlight = False # whether the Pi's display has hardware backlight control
         
@@ -90,6 +92,10 @@ class DisplayToggleAdapter(Adapter):
             print("Error reading persistent data: " + str(ex))
         
         
+        # Read configuration settings
+        self.add_from_config()
+        
+        
         try:
             self.display_toggle = DisplayToggleDevice(self)
             self.handle_device_added(self.display_toggle)
@@ -103,9 +109,6 @@ class DisplayToggleAdapter(Adapter):
             print("Could not create display_toggle device: " + str(ex))
 
 
-
-            
-        
         if os.path.isdir('/sys/class/backlight/rpi_backlight'):
             self.backlight = True
             self.set_brightness(self.persistent_data['brightness'])
@@ -113,11 +116,72 @@ class DisplayToggleAdapter(Adapter):
         if self.pi4:
             self.set_rotation(self.persistent_data['rotation'])
 
-        if self.persistent_data['display'] == True:
-            self.set_power_state(self.persistent_data['display'])
-        else:
+        if self.do_not_turn_on_initially == False:
+            self.set_power_state(True) # ALWAYS turn on the display for the first 90 seconds.
+            #if self.persistent_data['display'] == True:
+            #    self.set_power_state(self.persistent_data['display'])
+            #else:
             time.sleep(90)
+            if self.user_action_occured == False:
+                self.set_power_state(self.persistent_data['display'])
+        else:
             self.set_power_state(self.persistent_data['display'])
+
+
+
+
+
+#
+#  ADD FROM CONFIG
+#
+
+    def add_from_config(self):
+        """Attempt to load configuration."""
+        try:
+            database = Database(self.addon_name)
+            if not database.open():
+                print("Error. Could not open settings database")
+                return
+
+            config = database.load_config()
+            database.close()
+
+        except Exception as ex:
+            print("Error. Failed to open settings database. Closing proxy: " + str(ex))
+            self.close_proxy()
+            
+        try:
+            if not config:
+                return
+
+            if 'Debugging' in config:
+                #print("-Debugging was in config")
+                self.DEBUG = bool(config['Debugging'])
+                if self.DEBUG:
+                    print("Debugging enabled")
+
+            if 'Do not turn on initially' in config:
+                #print("-Debugging was in config")
+                self.do_not_turn_on_initially = bool(config['Do not turn on initially'])
+                if self.DEBUG:
+                    print("Do not turn on initially preference was in config: " + str(self.do_not_turn_on_initially))
+
+            if self.DEBUG:
+                print(str(config))
+                
+        except Exception as ex:
+            print("Error reading config: " + str(ex))
+
+
+
+
+
+
+
+
+
+
+
 
 #
 # MAIN SETTING OF THE STATES
@@ -455,6 +519,9 @@ class DisplayToggleProperty(Property):
 
         except Exception as ex:
             print("set_value error: " + str(ex))
+
+        
+        self.device.adapter.user_action_occured = True
 
 
 

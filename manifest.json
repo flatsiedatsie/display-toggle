@@ -14,6 +14,26 @@
   "license": "MPL-2.0",
   "manifest_version": 1,
   "name": "Display Toggle",
+  "options": {
+    "default": {
+	  "Do not turn on initially": false,
+      "Debugging": false
+    },
+    "schema": {
+      "properties": {
+        "Do not turn on initially": {
+          "type": "boolean",
+          "description": "By default the display will always be turned on for the first 90 seconds after starting the addon. This is designed as a safeguard, so that you can always set the display back into 'on' mode from the touch screen. You can disable this feature if you prefer."
+		},
+        "Debugging": {
+          "type": "boolean",
+          "description": "Advanced. Debugging allows you to diagnose any issues with the add-on. If enabled it will result in a lot more debug data in the internal log (which can be found under settings -> developer -> view internal logs)."
+        }
+      },
+      "required": [],
+      "type": "object"
+    }
+  },
   "short_name": "Display",
-  "version": "1.0.9"
+  "version": "1.1.0"
 }
