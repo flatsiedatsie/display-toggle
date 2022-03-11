@@ -208,6 +208,9 @@ class DisplayToggleAdapter(Adapter):
                 os.system("DISPLAY=:0 xset s noblank")
                 self.set_power_property(bool(power))
                 
+                # restore rotation too
+                self.set_rotation( self.persistent_data['rotation'] )
+                
             else:
                 os.system("vcgencmd display_power 0")
                 #os.system("DISPLAY=:0 xset dpms force off")    
