@@ -269,12 +269,25 @@ class DisplayToggleAdapter(Adapter):
             
             if int(degrees) == 0:
                 os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate normal")
+                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 1 0 0 0 1 0 0 0 1")
+                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 1 0 0 0 1 0 0 0 1")
+                
             elif int(degrees) == 90:
                 os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate left")
+                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 0 -1 1 1 0 0 0 0 1")
+                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 0 -1 1 1 0 0 0 0 1")
+                
             elif int(degrees) == 180:
                 os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate inverted")
+                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1")
+                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1")
+                
             elif int(degrees) == 270:
                 os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate right")
+                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 0 1 0 -1 0 1 0 0 1")
+                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 0 1 0 -1 0 1 0 0 1")
+                
+                
             
         except Exception as ex:
             if self.DEBUG:
@@ -315,6 +328,7 @@ class DisplayToggleAdapter(Adapter):
             print(str(dir(self.devices['display-toggle'].properties)))
             if self.devices['display-toggle'] != None:
                 self.devices['display-toggle'].properties['rotation'].update( str(rotation) )
+                
         except Exception as ex:
             print("Error setting rotation property: " + str(ex))
 
