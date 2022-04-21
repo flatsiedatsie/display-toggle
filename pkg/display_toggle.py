@@ -291,6 +291,12 @@ class DisplayToggleAdapter(Adapter):
                 os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 0 1 0 -1 0 1 0 0 1")
                 
                 
+            if int(degrees) == 180:
+                os.system("sudo touch /boot/rotate180.txt")
+            else:
+                if os.path.isfile('/boot/rotate180.txt'):
+                    os.system("sudo rm /boot/rotate180.txt")
+                
             
         except Exception as ex:
             if self.DEBUG:
@@ -328,10 +334,13 @@ class DisplayToggleAdapter(Adapter):
         if self.DEBUG:
             print("new rotation: " + str(rotation))
         try:
-            print(str(dir(self.devices['display-toggle'].properties)))
+            #print(str(dir(self.devices['display-toggle'].properties)))
             if self.devices['display-toggle'] != None:
-                self.devices['display-toggle'].properties['rotation'].update( str(rotation) )
-                
+                if 'rotation' in self.devices['display-toggle'].properties:
+                    self.devices['display-toggle'].properties['rotation'].update( str(rotation) )
+                else:
+                    if self.DEBUG:
+                        print('rotation was not a property')
         except Exception as ex:
             print("Error setting rotation property: " + str(ex))
 
