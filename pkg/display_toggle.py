@@ -42,6 +42,7 @@ class DisplayToggleAdapter(Adapter):
         if os.path.isfile('/boot/debug_display_toggle.txt'):
             self.DEBUG = True
 
+        self.running = True
         self.addon_path = os.path.join(self.user_profile['addonsDir'], self.addon_name)
         self.persistence_file_path = os.path.join(self.user_profile['dataDir'], self.addon_name,'persistence.json')
 
@@ -117,6 +118,9 @@ class DisplayToggleAdapter(Adapter):
             self.set_rotation(self.persistent_data['rotation'])
 
         if self.do_not_turn_on_initially == False:
+            #if self.DEBUG:
+            if self.DEBUG:
+                print("display toggle is waiting 90 seconds")
             self.set_power_state(True) # ALWAYS turn on the display for the first 90 seconds.
             #if self.persistent_data['display'] == True:
             #    self.set_power_state(self.persistent_data['display'])
@@ -128,8 +132,27 @@ class DisplayToggleAdapter(Adapter):
             self.set_power_state(self.persistent_data['display'])
 
 
-
-
+        # Detect when the user powers down the touch screen, and restore screen rotation afterwards
+        self.previous_keyboard_count = 0
+        #print("ok")
+        while self.running:
+            found_keyboards = 0
+            
+            keyboards = run_command('ls -l /dev/input/by-id/*-mouse')
+            
+            if 'No such file or directory' in keyboards:
+                #print("no keyboards")
+                pass
+            else:
+                keyboards = keyboards.strip().split('\n')
+                found_keyboards = len(keyboards)
+                #print("keyboards array: " + str(len(keyboards)))
+            
+            if found_keyboards != self.previous_keyboard_count:
+                self.previous_keyboard_count = found_keyboards
+                #print("keyboard count changed")
+                self.set_power_state(self.persistent_data['display'])
+            time.sleep(2)
 
 #
 #  ADD FROM CONFIG
@@ -350,6 +373,7 @@ class DisplayToggleAdapter(Adapter):
     def unload(self):
         if self.DEBUG:
             print("Shutting down display toggle.")
+        self.running = False
         self.set_power_state(1)
 
 
