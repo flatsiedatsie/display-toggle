@@ -150,6 +150,8 @@ class DisplayToggleAdapter(Adapter):
             
             if found_keyboards != self.previous_keyboard_count:
                 self.previous_keyboard_count = found_keyboards
+                if self.DEBUG:
+                    print("\nKeyboard count changed")
                 #print("keyboard count changed")
                 self.set_power_state(self.persistent_data['display'])
             time.sleep(2)
@@ -501,7 +503,7 @@ class DisplayToggleDevice(Device):
 
         if self.adapter.DEBUG:
             print("self.adapter.screen_width: " + str(self.adapter.screen_width))
-            print("type(self.adapter.screen_width): " + str(type(self.adapter.screen_width)))
+            #print("type(self.adapter.screen_width): " + str(type(self.adapter.screen_width)))
             print("self.adapter.screen_width.isdigit(): ", self.adapter.screen_width.isdigit())
         
         if self.adapter.screen_width.isdigit() and self.adapter.screen_height.isdigit():
