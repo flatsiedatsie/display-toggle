@@ -1,6 +1,6 @@
 {
   "author": "CandleSmartHome.com",
-  "description": "Display Toggle",
+  "description": "Turn a display on or off. Can also rotate a display 90, 180 or 270 degrees.",
   "gateway_specific_settings": {
     "webthings": {
       "exec": "python3 {path}/main.py",
@@ -30,7 +30,6 @@
           "description": "Advanced. Debugging allows you to diagnose any issues with the add-on. If enabled it will result in a lot more debug data in the internal log (which can be found under settings -> developer -> view internal logs)."
         }
       },
-      "required": [],
       "type": "object"
     }
   },

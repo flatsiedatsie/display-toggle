@@ -125,7 +125,10 @@ class DisplayToggleAdapter(Adapter):
             #if self.persistent_data['display'] == True:
             #    self.set_power_state(self.persistent_data['display'])
             #else:
-            time.sleep(90)
+            if self.DEBUG:
+                time.sleep(20)
+            else:
+                time.sleep(90)
             if self.user_action_occured == False:
                 self.set_power_state(self.persistent_data['display'])
         else:
