@@ -125,10 +125,7 @@ class DisplayToggleAdapter(Adapter):
             #if self.persistent_data['display'] == True:
             #    self.set_power_state(self.persistent_data['display'])
             #else:
-            if self.DEBUG:
-                time.sleep(20)
-            else:
-                time.sleep(90)
+            time.sleep(90)
             if self.user_action_occured == False:
                 self.set_power_state(self.persistent_data['display'])
         else:
@@ -153,8 +150,6 @@ class DisplayToggleAdapter(Adapter):
             
             if found_keyboards != self.previous_keyboard_count:
                 self.previous_keyboard_count = found_keyboards
-                if self.DEBUG:
-                    print("\nKeyboard count changed")
                 #print("keyboard count changed")
                 self.set_power_state(self.persistent_data['display'])
             time.sleep(2)
@@ -449,7 +444,7 @@ class DisplayToggleDevice(Device):
         self.title = 'Display'
         self.description = 'Turn the display on and off'
         
-        self._type = ['OnOffSwitch']
+        #self._type = ['OnOffSwitch']
 
         try:
 
@@ -457,8 +452,9 @@ class DisplayToggleDevice(Device):
                             self,
                             "power",
                             {
-                                '@type': 'OnOffProperty',
+                            #    '@type': 'OnOffProperty',
                                 'label': "State",
+                                'title': "State",
                                 'type': 'boolean'
                             },
                             self.adapter.persistent_data['display']) # set the display to on at init
@@ -506,7 +502,7 @@ class DisplayToggleDevice(Device):
 
         if self.adapter.DEBUG:
             print("self.adapter.screen_width: " + str(self.adapter.screen_width))
-            #print("type(self.adapter.screen_width): " + str(type(self.adapter.screen_width)))
+            print("type(self.adapter.screen_width): " + str(type(self.adapter.screen_width)))
             print("self.adapter.screen_width.isdigit(): ", self.adapter.screen_width.isdigit())
         
         if self.adapter.screen_width.isdigit() and self.adapter.screen_height.isdigit():
