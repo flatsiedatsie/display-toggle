@@ -38,8 +38,12 @@ class DisplayToggleAdapter(Adapter):
         Adapter.__init__(self, self.addon_name, self.addon_name, verbose=verbose)
 
         #print(str(os.uname()))
+        
+        self.boot_path = '/boot'
+        if os.path.exists('/boot/firmware'):
+            self.boot_path = '/boot/firmware'
 
-        if os.path.isfile('/boot/debug_display_toggle.txt'):
+        if os.path.isfile(self.boot_path + '/debug_display_toggle.txt'):
             self.DEBUG = True
 
         self.running = True
@@ -315,10 +319,10 @@ class DisplayToggleAdapter(Adapter):
                 
                 
             if int(degrees) == 180:
-                os.system("sudo touch /boot/rotate180.txt")
+                os.system("sudo touch " + str(self.boot_path) + "/rotate180.txt")
             else:
-                if os.path.isfile('/boot/rotate180.txt'):
-                    os.system("sudo rm /boot/rotate180.txt")
+                if os.path.isfile(self.boot_path + '/rotate180.txt'):
+                    os.system("sudo rm " + str(self.boot_path) + "/rotate180.txt")
                 
             
         except Exception as ex:
