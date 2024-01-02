@@ -57,7 +57,15 @@ class DisplayToggleAdapter(Adapter):
         self.backlight = False # whether the Pi's display has hardware backlight control
         
         self.display_port1_name = 'HDMI-1'
-        
+        display_port_names = run_command("DISPLAY=:0 xrandr | grep 'connected' | cut -d' ' -f1")
+        if self.DEBUG:
+            print("display_port_names: \n" + str(display_port_names))
+        display_port_names = display_port_names.splitlines()
+    
+        if len(display_port_names) > 0:
+            if len(str(display_port_names[0])) > 2:
+                self.display_port1_name = display_port_names[0]
+
         self.screen_width  = run_command('cat /sys/class/graphics/fb0/virtual_size | cut -d, -f1')
         self.screen_height = run_command('cat /sys/class/graphics/fb0/virtual_size | cut -d, -f2')
         
@@ -236,7 +244,8 @@ class DisplayToggleAdapter(Adapter):
             #self.save_persistent_data()
 
             if power:
-                os.system("vcgencmd display_power 1")
+                #os.system("vcgencmd display_power 1")
+                os.system("DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --auto")
                 #os.system("DISPLAY=:0 xset dpms force on")
                 os.system("DISPLAY=:0 xset -dpms")
                 os.system("DISPLAY=:0 xset s off")
@@ -247,7 +256,8 @@ class DisplayToggleAdapter(Adapter):
                 self.set_rotation( self.persistent_data['rotation'] )
                 
             else:
-                os.system("vcgencmd display_power 0")
+                os.system("DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --off")
+                #os.system("vcgencmd display_power 0")
                 #os.system("DISPLAY=:0 xset dpms force off")    
                 self.set_power_property(bool(power))
 
@@ -279,7 +289,7 @@ class DisplayToggleAdapter(Adapter):
                 command = 'echo {} > /sys/class/backlight/rpi_backlight/brightness'.format(byte_brightness)
             else:
                 decimal_brightness = brightness / 100
-                command = 'DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --brightness {}'.format(decimal_brightness, '.1f')
+                command = 'DISPLAY=:0 xrandr --output ' + str(self.display_port1_name) + ' --brightness {}'.format(decimal_brightness, '.1f')
 
 
             if self.DEBUG:
