@@ -56,6 +56,8 @@ class DisplayToggleAdapter(Adapter):
         
         self.backlight = False # whether the Pi's display has hardware backlight control
         
+        self.display_port1_name = 'HDMI-1'
+        
         self.screen_width  = run_command('cat /sys/class/graphics/fb0/virtual_size | cut -d, -f1')
         self.screen_height = run_command('cat /sys/class/graphics/fb0/virtual_size | cut -d, -f2')
         
@@ -68,8 +70,9 @@ class DisplayToggleAdapter(Adapter):
             fd = os.open("/sys/firmware/devicetree/base/model",os.O_RDONLY)
 	
             ret = os.read(fd,15)
-            #print("Pi version: " + str(ret))
-            if "Raspberry Pi 4" in str(ret):
+            if self.DEBUG:
+                print("Pi version: " + str(ret))
+            if "Raspberry Pi 4" in str(ret) or "Raspberry Pi 5" in str(ret):
                 if self.DEBUG:
                     print("it's a Raspberry Pi 4")
                 self.pi4 = True
@@ -99,6 +102,10 @@ class DisplayToggleAdapter(Adapter):
         
         # Read configuration settings
         self.add_from_config()
+        
+        if not 'resolution' in self.persistent_data:
+            self.persistent_data['resolution'] = 'auto'
+        
         
         
         try:
@@ -157,6 +164,7 @@ class DisplayToggleAdapter(Adapter):
                 #print("keyboard count changed")
                 self.set_power_state(self.persistent_data['display'])
             time.sleep(2)
+
 
 #
 #  ADD FROM CONFIG
@@ -271,7 +279,7 @@ class DisplayToggleAdapter(Adapter):
                 command = 'echo {} > /sys/class/backlight/rpi_backlight/brightness'.format(byte_brightness)
             else:
                 decimal_brightness = brightness / 100
-                command = 'DISPLAY=:0 xrandr --output HDMI-1 --brightness {}'.format(decimal_brightness, '.1f')
+                command = 'DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --brightness {}'.format(decimal_brightness, '.1f')
 
 
             if self.DEBUG:
@@ -297,26 +305,48 @@ class DisplayToggleAdapter(Adapter):
             self.persistent_data['rotation'] = str(degrees)
             self.save_persistent_data()
             
+            
+            
+            
+            transform_matrix = '1 0 0 0 1 0 0 0 1'
             if int(degrees) == 0:
-                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate normal")
-                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 1 0 0 0 1 0 0 0 1")
-                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 1 0 0 0 1 0 0 0 1")
+                os.system("DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --rotate normal")
+                #os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 1 0 0 0 1 0 0 0 1")
+                #os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 1 0 0 0 1 0 0 0 1")
                 
             elif int(degrees) == 90:
-                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate left")
-                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 0 -1 1 1 0 0 0 0 1")
-                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 0 -1 1 1 0 0 0 0 1")
+                os.system("DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --rotate left")
+                transform_matrix = '0 -1 1 1 0 0 0 0 1'
+                #os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 0 -1 1 1 0 0 0 0 1")
+                #os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 0 -1 1 1 0 0 0 0 1")
                 
             elif int(degrees) == 180:
-                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate inverted")
-                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1")
-                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1")
+                os.system("DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --rotate inverted")
+                transform_matrix = '-1 0 1 0 -1 1 0 0 1'
+                #os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1")
+                #os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' -1 0 1 0 -1 1 0 0 1")
                 
             elif int(degrees) == 270:
-                os.system("DISPLAY=:0 xrandr --output HDMI-1 --rotate right")
-                os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 0 1 0 -1 0 1 0 0 1")
-                os.system("DISPLAY=:0 xinput --set-prop 'HID 222a:0001' 'Coordinate Transformation Matrix' 0 1 0 -1 0 1 0 0 1")
+                os.system("DISPLAY=:0 xrandr --output " + str(self.display_port1_name) + " --rotate right")
+                transform_matrix = '0 1 0 -1 0 1 0 0 1'
+                #os.system("DISPLAY=:0 xinput --set-prop 'ILITEK ILITEK-TP' 'Coordinate Transformation Matrix' 0 1 0 -1 0 1 0 0 1")
+               
                 
+                
+            pointer_output = run_command("DISPLAY=:0 xinput | grep pointer | tail -n +2 | grep -v ' XTEST '") #  | cut -f1 -d$'\t'     # | grep -v ' XTEST '
+            if pointer_output != None:
+                for line in pointer_output.splitlines():
+                    print("pointer_output line: " + str(line))
+                
+                    input_name = re.split(r'\t+', line)[0]
+                    print("input_name again: " + str(input_name))
+                
+                    input_name = input_name[5:].strip()
+                
+                    print("input_name again2: " + str(input_name))
+                    print("int(rotation): " + str(int(rotation)))
+                
+                    os.system("DISPLAY=:0 xinput --set-prop '" + str(input_name) + "' 'Coordinate Transformation Matrix' " + str(transform_matrix))
                 
             if int(degrees) == 180:
                 os.system("sudo touch " + str(self.boot_path) + "/rotate180.txt")
@@ -330,6 +360,57 @@ class DisplayToggleAdapter(Adapter):
                 print("Error trying to set rotation: " + str(ex))
             
         self.set_rotation_property(str(degrees))
+
+
+
+
+    def set_resolution(self,reso):
+        if self.DEBUG:
+            print("changing resolution to: " + str(reso))
+        
+        # TODO: look into https://forums.raspberrypi.com/viewtopic.php?t=8081
+        # DISPLAY=:0.0 xrandr --output default --rotate inverted
+            
+        # How to add a custom resolution:
+        # https://unix.stackexchange.com/questions/227876/how-to-set-custom-resolution-using-xrandr-when-the-resolution-is-not-available-i
+        
+        #DISPLAY=:0 xrandr --newmode "1280x720_59.86" 74.5 1280 1344 1472 1664 720 723 728 748 -HSync +VSync
+        #DISPLAY=:0 xrandr --addmode default "1280x720_59.86"
+        #DISPLAY=:0 xrandr --output default --mode "1280x720_59.86"
+        
+        #DISPLAY=:0 xrandr --newmode "1280x800_60.00"  83.46  1280 1344 1480 1680  800 801 804 828  -HSync +Vsync
+        #DISPLAY=:0 xrandr --addmode default "1280x800_60.00"
+        #DISPLAY=:0 xrandr --output default --mode "1280x800_60.00"
+            
+        try:
+            self.persistent_data['resolution'] = str(reso)
+            self.save_persistent_data()
+            
+            # In the /boot/config.txt file you could try to adjust the framebuffer_width and framebuffer_height settings to 1920x1080, this will force the image at that resolution through the HDMI port.
+            
+            if reso == 'auto':
+                os.system('DISPLAY=:0 xrandr --output ' + str(self.display_port1_name) + ' --auto')
+                
+            elif reso == '720p':
+                #os.system("fbset -g 1280 720 1280 720 16")
+                os.system('DISPLAY=:0 xrandr --output ' + str(self.display_port1_name) + ' --mode 1280x720 --rate 60')
+               # os.system("")
+            
+            elif reso == '1080p':
+                #os.system("fbset -g 1280 720 1280 720 16")
+                os.system('DISPLAY=:0 xrandr --output ' + str(self.display_port1_name) + ' --mode 1920x1080 --rate 60')             
+                
+            elif reso == 'safe':
+                #os.system("fbset -g 1280 720 1280 720 16")
+                os.system('DISPLAY=:0 xrandr --output ' + str(self.display_port1_name) + ' --mode 640x480 --rate 60')
+            
+        except Exception as ex:
+            if self.DEBUG:
+                print("Error trying to set resolution: " + str(ex))
+            
+        self.set_rotation_property(str(reso))
+
+
 
             
 #
@@ -511,6 +592,18 @@ class DisplayToggleDevice(Device):
         
         if self.adapter.screen_width.isdigit() and self.adapter.screen_height.isdigit():
             
+            self.properties["resolution"] = DisplayToggleProperty(
+                            self,
+                            "resolution",
+                            {
+                                "type": "string",
+                                'enum': ['auto','safe','720p','1080p'],
+                                "title": "Resolution",
+                                "description": "The prefered resolution of the display"
+                            },
+                            str(self.adapter.persistent_data['resolution']))
+            
+            
             self.properties["width"] = DisplayToggleProperty(
                             self,
                             "width",
@@ -571,6 +664,10 @@ class DisplayToggleProperty(Property):
                 
             if self.title == 'rotation':
                 self.device.adapter.set_rotation(str(value))
+
+            if self.title == 'resolution':
+                self.device.adapter.set_resolution(str(value))
+            
 
         except Exception as ex:
             print("set_value error: " + str(ex))
