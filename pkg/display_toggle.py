@@ -533,9 +533,10 @@ class DisplayToggleDevice(Device):
 
         self._id = 'display-toggle'
         self.id = 'display-toggle'
+		self.name = 'display-toggle'
+		
         self.adapter = adapter
 
-        self.name = 'Display'
         self.title = 'Display'
         self.description = 'Turn the display on and off'
         
